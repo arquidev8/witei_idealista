@@ -1164,26 +1164,61 @@ for property in data_dict["root"]["property"]:
    return 0.0
 
 
- try:
-  featuresEnergyCertificatePerformance = convert_to_float(property.get("wi_data", {}).get("energy_rating_values", "").get("consumption_value", ""))
+ # try:
+ #  featuresEnergyCertificatePerformance = convert_to_float(property.get("wi_data", {}).get("energy_rating_values", "").get("consumption_value", ""))
+ #
+ # except AttributeError:
+ #  print("El valor devuelto por property.get('wi_data', {}) no es un diccionario.")
 
+ try:
+  featuresEnergyCertificatePerformance = convert_to_float(
+   property.get("wi_data", {}).get("energy_rating_values", "").get("consumption_value", ""))
  except AttributeError:
   print("El valor devuelto por property.get('wi_data', {}) no es un diccionario.")
 
- featuresRooms = int(property.get("beds", "")) if property.get("beds") else 1
+ if featuresEnergyCertificatePerformance == 999:
+  featuresEnergyCertificatePerformance = None
 
+
+ featuresRooms = int(property.get("beds", "")) if property.get("beds") else 1
  featuresAreaUsable = property.get("surface_area", {}).get("usable", None)
 
- property_dict["propertyFeatures"] = {
-  "featuresType": type_value,
-  "featuresAreaConstructed": featuresAreaConstructed,
-  "featuresAreaUsable": featuresAreaUsable,
-  "featuresBathroomNumber": featuresBathroomNumber,
-  "featuresBedroomNumber": featuresBedroomNumber,
-  "featuresEnergyCertificateRating": property.get("energy_rating", {}).get("consumption", ""),
-  "featuresEnergyCertificatePerformance": featuresEnergyCertificatePerformance,
-  "featuresRooms": featuresRooms,
- }
+ # property_dict["propertyFeatures"] = {
+ #  "featuresType": type_value,
+ #  "featuresAreaConstructed": featuresAreaConstructed,
+ #  "featuresAreaUsable": featuresAreaUsable,
+ #  "featuresBathroomNumber": featuresBathroomNumber,
+ #  "featuresBedroomNumber": featuresBedroomNumber,
+ #  "featuresEnergyCertificateRating": property.get("energy_rating", {}).get("consumption", ""),
+ #  "featuresEnergyCertificatePerformance": featuresEnergyCertificatePerformance,
+ #  "featuresRooms": featuresRooms,
+ # }
+
+ energy_rating = property.get("energy_rating", {}).get("consumption", "")
+
+ if energy_rating != "X":
+  property_dict["propertyFeatures"] = {
+   "featuresType": type_value,
+   "featuresAreaConstructed": featuresAreaConstructed,
+   "featuresAreaUsable": featuresAreaUsable,
+   "featuresBathroomNumber": featuresBathroomNumber,
+   "featuresBedroomNumber": featuresBedroomNumber,
+   "featuresEnergyCertificateRating": energy_rating,
+   "featuresEnergyCertificatePerformance": featuresEnergyCertificatePerformance,
+   "featuresRooms": featuresRooms,
+  }
+ else:
+  property_dict["propertyFeatures"] = {
+   "featuresType": type_value,
+   "featuresAreaConstructed": featuresAreaConstructed,
+   "featuresAreaUsable": featuresAreaUsable,
+   "featuresBathroomNumber": featuresBathroomNumber,
+   "featuresBedroomNumber": featuresBedroomNumber,
+   "featuresEnergyCertificatePerformance": featuresEnergyCertificatePerformance,
+   "featuresRooms": featuresRooms,
+  }
+
+
 
  # Si la propiedad es de tipo "flat", establece "featuresBathroomNumber" y "featuresBedroomNumber" en 1 si sus valores son None, 0, o null
  if type_value == "flat":
@@ -1250,8 +1285,11 @@ for property in data_dict["root"]["property"]:
    }
   ]
 
+ if 'propertyVideos' in property_dict:
+       property_dict["propertyVideos"] = [{k: v for k, v in video.items() if v} for video in property_dict["propertyVideos"]]
+
  # Crea un nuevo diccionario que solo incluya los campos que tienen un valor distinto de None o vacío
- property_dict["propertyVideos"] = [{k: v for k, v in video.items() if v} for video in property_dict["propertyVideos"]]
+ # property_dict["propertyVideos"] = [{k: v for k, v in video.items() if v} for video in property_dict["propertyVideos"]]
 
  # Si featuresAreaConstructed es 1, salta la adición de property_dict a json_dict["customerProperties"]
  if property_dict["propertyFeatures"].get("featuresAreaConstructed") != 1:
