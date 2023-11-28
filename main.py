@@ -1073,237 +1073,545 @@
 
 
 
+# import requests
+# import time
+# from xml.etree.ElementTree import fromstring
+# import json
+# import xmltodict
+# import re
+# from ftplib import FTP
+# import json
+# import xmltodict
+#
+#
+# def remove_postal_code(address):
+#  pattern = r'\b\d{5}\b,?$'
+#  address = re.sub(pattern, '', address)
+#  return address.rstrip(', ')
+#
+#
+# def download_xml(url, save_path):
+#  response = requests.get(url)
+#  with open(save_path, 'wb') as xml_file:
+#   xml_file.write(response.content)
+#
+# # Configuración del enlace XML y el temporizador (40 minutos = 2400 segundos)
+# xml_url = 'https://app.witei.com/pro/interconnection/xml/d1e8a7f70b7e4546/'
+# download_interval = 2400
+#
+# while True:
+#  try:
+#   # Descarga el archivo XML
+#   xml_file_path = 'archivo.xml'
+#   download_xml(xml_url, xml_file_path)
+#
+#   # ... (código existente para la conversión XML a JSON y transferencia FTP)
+#
+#   print('Proceso completado con éxito.')
+#
+#  except Exception as e:
+#   print(f"Error en el proceso: {e}")
+#
+#  # Espera antes de volver a descargar el archivo XML
+#  time.sleep(download_interval)
+#
+# #DESDE AQUI EMPIEZA LA TRANSFORMACION EN JSON
+#
+# # Abre el archivo XML y lee los datos en forma de un diccionario de Python usando xmltodict
+# with open("d1e8a7f70b7e4546.xml", 'r', encoding='utf-8') as xml_file:
+#  data_dict = xmltodict.parse(xml_file.read())
+#
+# # Crea un nuevo diccionario para el JSON
+# json_dict = {}
+#
+# # Mapea los campos XML a los campos JSON
+# json_dict["customerCountry"] = "Spain"
+# json_dict["customerCode"] = "ilcc1ed9c9a4cff4a9ab424c5dd980602de9fac50c1" # Reemplaza con tu propio código
+# json_dict["customerReference"] = "Witei" # Reemplaza con tu propia referencia
+# json_dict["customerContact"] = {
+#  "contactName": "HannanPiper",
+#  "contactEmail": "info@hannanpiper.com",
+#  "contactPrimaryPhonePrefix": "34",
+#  "contactPrimaryPhoneNumber": "931595880",
+# }
+#
+# # Mapea los campos restantes
+# json_dict["customerProperties"] = []
+#
+# # Itera sobre cada propiedad en la lista
+# for property in data_dict["root"]["property"]:
+#  property_dict = {}
+#
+#  property_dict["propertyCode"] = property.get("id", "")
+#  property_dict["propertyReference"] = property.get("ref", "")
+#  property_dict["propertyVisibility"] = "idealista"
+#
+#  operationPrice = int(property.get("price", "") or 0)
+#
+#  property_dict["propertyOperation"] = {
+#   "operationType": property.get("price_freq", ""),
+#   "operationPrice": operationPrice,
+#  }
+#
+#  # Cambia "month" a "sale" en "operationType"
+#  if property_dict["propertyOperation"]["operationType"] == "month":
+#   property_dict["propertyOperation"]["operationType"] = "sale"
+#
+#
+#  addressCoordinatesLatitude = float(property.get("location", {}).get("latitude", "") or 0)
+#  addressCoordinatesLongitude = float(property.get("location", {}).get("longitude", "") or 0)
+#
+#  property_dict["propertyAddress"] = {
+#   "addressVisibility": "street",
+#   "addressStreetName": property.get("location_detail", ""),
+#   "addressUrbanization": property.get("town", ""),
+#   "addressPostalCode": property.get("wi_data", {}).get("postalcode", ""),
+#   "addressTown": property.get("town", ""),
+#   "addressCountry": property.get("country", ""),
+#   "addressCoordinatesPrecision": "exact",
+#   "addressCoordinatesLatitude": addressCoordinatesLatitude,
+#   "addressCoordinatesLongitude": addressCoordinatesLongitude,
+#  }
+#
+#  if property_dict["propertyAddress"]["addressStreetName"] is not None:
+#   property_dict["propertyAddress"]["addressStreetName"] = remove_postal_code(property_dict["propertyAddress"]["addressStreetName"])
+#
+#
+#  # Crea un nuevo diccionario que solo incluya los campos que tienen un valor distinto de None o vacío
+#  property_dict["propertyAddress"] = {k: v for k, v in property_dict["propertyAddress"].items() if v}
+#
+#
+#  type_value = property.get("type", "").lower()
+#
+#  if type_value in ["piso", "casa", "apartamento", "vivienda", "shop", "penthouse", "duplex", "land", "villa", "studio",
+#                    "building", "industrial", "apartment", "mansion"]:
+#   type_value = "flat"
+#  elif type_value == "parking":
+#   type_value = "garage"
+#  elif type_value == "office":
+#   type_value = "office"
+#
+#  featuresAreaConstructed = int(property.get("surface_area", {}).get("built", 1)) if property.get("surface_area",{}).get("built") else None
+#  featuresAreaPlot = int(property.get("surface_area", {}).get("plot", "") or 0) if property.get("surface_area", {}).get("plot") else None
+#  featuresBathroomNumber = int(property.get("baths", "") or 0) if property.get("baths") else 1
+#  featuresBedroomNumber = int(property.get("beds", "") or 0) if property.get("beds") else 1
+#
+#
+#  def convert_to_float(value):
+#   try:
+#    return float(value.replace(',', '.'))
+#   except ValueError:
+#    return 0.0
+#
+#
+#  try:
+#   featuresEnergyCertificatePerformance = convert_to_float(
+#    property.get("wi_data", {}).get("energy_rating_values", "").get("consumption_value", ""))
+#  except AttributeError:
+#   print("El valor devuelto por property.get('wi_data', {}) no es un diccionario.")
+#
+#  if featuresEnergyCertificatePerformance == 999:
+#   featuresEnergyCertificatePerformance = None
+#
+#
+#  featuresRooms = int(property.get("beds", "")) if property.get("beds") else 1
+#  featuresAreaUsable = property.get("surface_area", {}).get("usable", None)
+#  energy_rating = property.get("energy_rating", {}).get("consumption", "")
+#
+#  if energy_rating != "X":
+#   property_dict["propertyFeatures"] = {
+#    "featuresType": type_value,
+#    "featuresAreaConstructed": featuresAreaConstructed,
+#    "featuresAreaUsable": featuresAreaUsable,
+#    "featuresBathroomNumber": featuresBathroomNumber,
+#    "featuresBedroomNumber": featuresBedroomNumber,
+#    "featuresEnergyCertificateRating": energy_rating,
+#    "featuresEnergyCertificatePerformance": featuresEnergyCertificatePerformance,
+#    "featuresRooms": featuresRooms,
+#   }
+#  else:
+#   property_dict["propertyFeatures"] = {
+#    "featuresType": type_value,
+#    "featuresAreaConstructed": featuresAreaConstructed,
+#    "featuresAreaUsable": featuresAreaUsable,
+#    "featuresBathroomNumber": featuresBathroomNumber,
+#    "featuresBedroomNumber": featuresBedroomNumber,
+#    "featuresEnergyCertificatePerformance": featuresEnergyCertificatePerformance,
+#    "featuresRooms": featuresRooms,
+#   }
+#
+#
+#  # Si la propiedad es de tipo "flat", establece "featuresBathroomNumber" y "featuresBedroomNumber" en 1 si sus valores son None, 0, o null
+#  if type_value == "flat":
+#   property_dict["propertyFeatures"]["featuresBathroomNumber"] = int(property_dict["propertyFeatures"].get("featuresBathroomNumber", 1))
+#   property_dict["propertyFeatures"]["featuresBedroomNumber"] = int(property_dict["propertyFeatures"].get("featuresBedroomNumber", 1))
+#
+#
+#  # Si la propiedad es de tipo "flat", establece "featuresBathroomNumber" y "featuresBedroomNumber" en 1 si sus valores son None, 0, o null
+#  if type_value == "flat":
+#   property_dict["propertyFeatures"]["featuresBathroomNumber"] = int(property_dict["propertyFeatures"].get("featuresBathroomNumber", 1)) or 1
+#   property_dict["propertyFeatures"]["featuresBedroomNumber"] = int(property_dict["propertyFeatures"].get("featuresBedroomNumber", 1)) or 1
+#   property_dict["propertyFeatures"]["featuresRooms"] = int(property_dict["propertyFeatures"].get("featuresRooms", 1)) or 1
+#   property_dict["propertyFeatures"]["featuresAreaConstructed"] = int(property_dict["propertyFeatures"].get("featuresAreaConstructed")) if property_dict["propertyFeatures"].get("featuresAreaConstructed") is not None else 1
+#
+#
+#  # Si la propiedad no es de tipo "flat", elimina los campos featuresBathroomNumber, featuresBedroomNumber y featuresRooms
+#  if type_value != "flat":
+#   property_dict["propertyFeatures"].pop("featuresBathroomNumber", None)
+#   property_dict["propertyFeatures"].pop("featuresBedroomNumber", None)
+#   property_dict["propertyFeatures"].pop("featuresRooms", None)
+#
+#  # Elimina los campos con valor None en "propertyFeatures"
+#  property_dict["propertyFeatures"] = {k: v for k, v in property_dict["propertyFeatures"].items() if v is not None}
+#
+#
+#
+#  property_dict["propertyDescriptions"] = [
+#  {
+#  "descriptionLanguage": "spanish",
+#  "descriptionText": property.get("desc", {}).get("es", "")
+#  },
+#  {
+#  "descriptionLanguage": "english",
+#  "descriptionText": property.get("desc", {}).get("en", "")
+#  },
+#  ]
+#  property_dict["propertyImages"] = []
+#  for image in property.get("images", {}).get("image", []):
+#     try:
+#         image_dict = {
+#             "imageOrder": int(image.get("@id", "")or 0),
+#             # "imageLabel": "property",
+#             "imageUrl": image.get("url", "")
+#         }
+#         property_dict["propertyImages"].append(image_dict)
+#     except AttributeError:
+#         pass
+#
+#  property_dict["propertyUrl"] = property.get("url", {}).get("es", "")
+#
+#  video_url = property.get("video_url", "")
+#  if video_url:  # Si videoUrl no está vacío
+#   property_dict["propertyVideos"] = [
+#    {
+#     "videoOrder": 1,
+#     "videoUrl": video_url
+#    }
+#   ]
+#
+#  if 'propertyVideos' in property_dict:
+#        property_dict["propertyVideos"] = [{k: v for k, v in video.items() if v} for video in property_dict["propertyVideos"]]
+#
+#  # Si featuresAreaConstructed es 1, salta la adición de property_dict a json_dict["customerProperties"]
+#  if property_dict["propertyFeatures"].get("featuresAreaConstructed") != 1:
+#   json_dict["customerProperties"].append(property_dict)
+#
+#  # # Convierte el diccionario a JSON usando json.dumps()
+#  # json_data = json.dumps(json_dict)
+#  #
+#  #
+#  # # Escribe los datos JSON en un archivo de salida
+#  # with open("ilcc1ed9c9a4cff4a9ab424c5dd980602de9fac50c1.json", "w") as json_file:
+#  #  json_file.write(json_data)
+#
+#
+#
+#  # Configuración de FTP
+#  ftp_host = 'ftp2.idealista.com'
+#  ftp_user = 'hannanpiper'
+#  ftp_password = 'ViamLapBa'
+#  ftp_destination_folder = '/'
+#
+#  # Nombre del archivo JSON de salida
+#  json_file_path = 'ilcc1ed9c9a4cff4a9ab424c5dd980602de9fac50c1.json'
+#
+#  # Convierte el diccionario a JSON usando json.dumps()
+#  json_data = json.dumps(json_dict)
+#
+#  # Escribe los datos JSON en un archivo de salida
+#  with open(json_file_path, "w") as json_file:
+#   json_file.write(json_data)
+#
+#  # Sube el archivo JSON por FTP
+#  with FTP(ftp_host) as ftp:
+#   ftp.login(user=ftp_user, passwd=ftp_password)
+#   ftp.cwd(ftp_destination_folder)
+#   with open(json_file_path, 'rb') as file:
+#    ftp.storbinary('STOR ' + json_file_path, file)
+#
+#  print('Proceso completado con éxito.')
+#
+#
 
 
 
+
+
+
+
+
+
+
+
+
+
+import requests
+import time
+import re
+from ftplib import FTP
 import json
 import xmltodict
 
-# Abre el archivo XML y lee los datos en forma de un diccionario de Python usando xmltodict
-with open("d1e8a7f70b7e4546.xml", 'r', encoding='utf-8') as xml_file:
- data_dict = xmltodict.parse(xml_file.read())
+def remove_postal_code(address):
+    pattern = r'\b\d{5}\b,?$'
+    address = re.sub(pattern, '', address)
+    return address.rstrip(', ')
 
-# Crea un nuevo diccionario para el JSON
-json_dict = {}
+def download_xml(url, save_path):
+    response = requests.get(url)
+    with open(save_path, 'wb') as xml_file:
+        xml_file.write(response.content)
 
-# Mapea los campos XML a los campos JSON
-json_dict["customerCountry"] = "Spain"
-json_dict["customerCode"] = "ilcc1ed9c9a4cff4a9ab424c5dd980602de9fac50c1" # Reemplaza con tu propio código
-json_dict["customerReference"] = "Witei" # Reemplaza con tu propia referencia
-json_dict["customerContact"] = {
- "contactName": "HannanPiper",
- "contactEmail": "info@hannanpiper.com",
- "contactPrimaryPhonePrefix": "34",
- "contactPrimaryPhoneNumber": "931595880",
-}
+def transform_xml_to_json(xml_file_path):
+    with open(xml_file_path, 'r', encoding='utf-8') as xml_file:
+        data_dict = xmltodict.parse(xml_file.read())
 
-# Mapea los campos restantes
-json_dict["customerProperties"] = []
+    # Resto del código para la transformación XML a JSON
+    json_dict = {}  # Asegúrate de inicializar tu diccionario aquí
 
-# Itera sobre cada propiedad en la lista
-for property in data_dict["root"]["property"]:
- property_dict = {}
+    # Mapea los campos XML a los campos JSON
+    json_dict["customerCountry"] = "Spain"
+    json_dict["customerCode"] = "ilcc1ed9c9a4cff4a9ab424c5dd980602de9fac50c1"  # Reemplaza con tu propio código
+    json_dict["customerReference"] = "Witei"  # Reemplaza con tu propia referencia
+    json_dict["customerContact"] = {
+     "contactName": "HannanPiper",
+     "contactEmail": "info@hannanpiper.com",
+     "contactPrimaryPhonePrefix": "34",
+     "contactPrimaryPhoneNumber": "931595880",
+    }
 
- property_dict["propertyCode"] = property.get("id", "")
- property_dict["propertyReference"] = property.get("ref", "")
- property_dict["propertyVisibility"] = "idealista"
+    # Mapea los campos restantes
+    json_dict["customerProperties"] = []
 
- operationPrice = int(property.get("price", "") or 0)
+    # Itera sobre cada propiedad en la lista
+    for property in data_dict["root"]["property"]:
+     property_dict = {}
 
- property_dict["propertyOperation"] = {
-  "operationType": property.get("price_freq", ""),
-  "operationPrice": operationPrice,
- }
+     property_dict["propertyCode"] = property.get("id", "")
+     property_dict["propertyReference"] = property.get("ref", "")
+     property_dict["propertyVisibility"] = "idealista"
 
- # Cambia "month" a "sale" en "operationType"
- if property_dict["propertyOperation"]["operationType"] == "month":
-  property_dict["propertyOperation"]["operationType"] = "sale"
+     operationPrice = int(property.get("price", "") or 0)
 
+     property_dict["propertyOperation"] = {
+      "operationType": property.get("price_freq", ""),
+      "operationPrice": operationPrice,
+     }
 
- addressCoordinatesLatitude = float(property.get("location", {}).get("latitude", "") or 0)
- addressCoordinatesLongitude = float(property.get("location", {}).get("longitude", "") or 0)
+     # Cambia "month" a "sale" en "operationType"
+     if property_dict["propertyOperation"]["operationType"] == "month":
+      property_dict["propertyOperation"]["operationType"] = "sale"
 
- property_dict["propertyAddress"] = {
-  "addressVisibility": "street",
-  "addressStreetName": property.get("location_detail", ""),
-  "addressUrbanization": property.get("town", ""),
-  "addressPostalCode": property.get("wi_data", {}).get("postalcode", ""),
-  "addressTown": property.get("town", ""),
-  "addressCountry": property.get("country", ""),
-  "addressCoordinatesPrecision": "exact",
-  "addressCoordinatesLatitude": addressCoordinatesLatitude,
-  "addressCoordinatesLongitude": addressCoordinatesLongitude,
- }
+     addressCoordinatesLatitude = float(property.get("location", {}).get("latitude", "") or 0)
+     addressCoordinatesLongitude = float(property.get("location", {}).get("longitude", "") or 0)
 
- # Crea un nuevo diccionario que solo incluya los campos que tienen un valor distinto de None o vacío
- property_dict["propertyAddress"] = {k: v for k, v in property_dict["propertyAddress"].items() if v}
+     property_dict["propertyAddress"] = {
+      "addressVisibility": "street",
+      "addressStreetName": property.get("location_detail", ""),
+      "addressUrbanization": property.get("town", ""),
+      "addressPostalCode": property.get("wi_data", {}).get("postalcode", ""),
+      "addressTown": property.get("town", ""),
+      "addressCountry": property.get("country", ""),
+      "addressCoordinatesPrecision": "exact",
+      "addressCoordinatesLatitude": addressCoordinatesLatitude,
+      "addressCoordinatesLongitude": addressCoordinatesLongitude,
+     }
 
+     if property_dict["propertyAddress"]["addressStreetName"] is not None:
+      property_dict["propertyAddress"]["addressStreetName"] = remove_postal_code(
+       property_dict["propertyAddress"]["addressStreetName"])
 
+     # Crea un nuevo diccionario que solo incluya los campos que tienen un valor distinto de None o vacío
+     property_dict["propertyAddress"] = {k: v for k, v in property_dict["propertyAddress"].items() if v}
 
+     type_value = property.get("type", "").lower()
 
- type_value = property.get("type", "").lower()
+     if type_value in ["piso", "casa", "apartamento", "vivienda", "shop", "penthouse", "duplex", "land", "villa",
+                       "studio",
+                       "building", "industrial", "apartment", "mansion"]:
+      type_value = "flat"
+     elif type_value == "parking":
+      type_value = "garage"
+     elif type_value == "office":
+      type_value = "office"
 
- if type_value in ["piso", "casa", "apartamento", "vivienda", "shop", "penthouse", "duplex", "land", "villa", "studio",
-                   "building", "industrial", "apartment", "mansion"]:
-  type_value = "flat"
- elif type_value == "parking":
-  type_value = "garage"
- elif type_value == "office":
-  type_value = "office"
+     featuresAreaConstructed = int(property.get("surface_area", {}).get("built", 1)) if property.get("surface_area",
+                                                                                                     {}).get(
+      "built") else None
+     featuresAreaPlot = int(property.get("surface_area", {}).get("plot", "") or 0) if property.get("surface_area",
+                                                                                                   {}).get(
+      "plot") else None
+     featuresBathroomNumber = int(property.get("baths", "") or 0) if property.get("baths") else 1
+     featuresBedroomNumber = int(property.get("beds", "") or 0) if property.get("beds") else 1
 
- featuresAreaConstructed = int(property.get("surface_area", {}).get("built", 1)) if property.get("surface_area",{}).get("built") else None
- featuresAreaPlot = int(property.get("surface_area", {}).get("plot", "") or 0) if property.get("surface_area", {}).get("plot") else None
- featuresBathroomNumber = int(property.get("baths", "") or 0) if property.get("baths") else 1
- featuresBedroomNumber = int(property.get("beds", "") or 0) if property.get("beds") else 1
+     def convert_to_float(value):
+      try:
+       return float(value.replace(',', '.'))
+      except ValueError:
+       return 0.0
 
+     try:
+      featuresEnergyCertificatePerformance = convert_to_float(
+       property.get("wi_data", {}).get("energy_rating_values", "").get("consumption_value", ""))
+     except AttributeError:
+      print("El valor devuelto por property.get('wi_data', {}) no es un diccionario.")
 
- def convert_to_float(value):
-  try:
-   return float(value.replace(',', '.'))
-  except ValueError:
-   return 0.0
+     if featuresEnergyCertificatePerformance == 999:
+      featuresEnergyCertificatePerformance = None
 
+     featuresRooms = int(property.get("beds", "")) if property.get("beds") else 1
+     featuresAreaUsable = property.get("surface_area", {}).get("usable", None)
+     energy_rating = property.get("energy_rating", {}).get("consumption", "")
 
- # try:
- #  featuresEnergyCertificatePerformance = convert_to_float(property.get("wi_data", {}).get("energy_rating_values", "").get("consumption_value", ""))
- #
- # except AttributeError:
- #  print("El valor devuelto por property.get('wi_data', {}) no es un diccionario.")
+     if energy_rating != "X":
+      property_dict["propertyFeatures"] = {
+       "featuresType": type_value,
+       "featuresAreaConstructed": featuresAreaConstructed,
+       "featuresAreaUsable": featuresAreaUsable,
+       "featuresBathroomNumber": featuresBathroomNumber,
+       "featuresBedroomNumber": featuresBedroomNumber,
+       "featuresEnergyCertificateRating": energy_rating,
+       "featuresEnergyCertificatePerformance": featuresEnergyCertificatePerformance,
+       "featuresRooms": featuresRooms,
+      }
+     else:
+      property_dict["propertyFeatures"] = {
+       "featuresType": type_value,
+       "featuresAreaConstructed": featuresAreaConstructed,
+       "featuresAreaUsable": featuresAreaUsable,
+       "featuresBathroomNumber": featuresBathroomNumber,
+       "featuresBedroomNumber": featuresBedroomNumber,
+       "featuresEnergyCertificatePerformance": featuresEnergyCertificatePerformance,
+       "featuresRooms": featuresRooms,
+      }
 
- try:
-  featuresEnergyCertificatePerformance = convert_to_float(
-   property.get("wi_data", {}).get("energy_rating_values", "").get("consumption_value", ""))
- except AttributeError:
-  print("El valor devuelto por property.get('wi_data', {}) no es un diccionario.")
+     # Si la propiedad es de tipo "flat", establece "featuresBathroomNumber" y "featuresBedroomNumber" en 1 si sus valores son None, 0, o null
+     if type_value == "flat":
+      property_dict["propertyFeatures"]["featuresBathroomNumber"] = int(
+       property_dict["propertyFeatures"].get("featuresBathroomNumber", 1))
+      property_dict["propertyFeatures"]["featuresBedroomNumber"] = int(
+       property_dict["propertyFeatures"].get("featuresBedroomNumber", 1))
 
- if featuresEnergyCertificatePerformance == 999:
-  featuresEnergyCertificatePerformance = None
+     # Si la propiedad es de tipo "flat", establece "featuresBathroomNumber" y "featuresBedroomNumber" en 1 si sus valores son None, 0, o null
+     if type_value == "flat":
+      property_dict["propertyFeatures"]["featuresBathroomNumber"] = int(
+       property_dict["propertyFeatures"].get("featuresBathroomNumber", 1)) or 1
+      property_dict["propertyFeatures"]["featuresBedroomNumber"] = int(
+       property_dict["propertyFeatures"].get("featuresBedroomNumber", 1)) or 1
+      property_dict["propertyFeatures"]["featuresRooms"] = int(
+       property_dict["propertyFeatures"].get("featuresRooms", 1)) or 1
+      property_dict["propertyFeatures"]["featuresAreaConstructed"] = int(
+       property_dict["propertyFeatures"].get("featuresAreaConstructed")) if property_dict["propertyFeatures"].get(
+       "featuresAreaConstructed") is not None else 1
 
+     # Si la propiedad no es de tipo "flat", elimina los campos featuresBathroomNumber, featuresBedroomNumber y featuresRooms
+     if type_value != "flat":
+      property_dict["propertyFeatures"].pop("featuresBathroomNumber", None)
+      property_dict["propertyFeatures"].pop("featuresBedroomNumber", None)
+      property_dict["propertyFeatures"].pop("featuresRooms", None)
 
- featuresRooms = int(property.get("beds", "")) if property.get("beds") else 1
- featuresAreaUsable = property.get("surface_area", {}).get("usable", None)
+     # Elimina los campos con valor None en "propertyFeatures"
+     property_dict["propertyFeatures"] = {k: v for k, v in property_dict["propertyFeatures"].items() if v is not None}
 
- # property_dict["propertyFeatures"] = {
- #  "featuresType": type_value,
- #  "featuresAreaConstructed": featuresAreaConstructed,
- #  "featuresAreaUsable": featuresAreaUsable,
- #  "featuresBathroomNumber": featuresBathroomNumber,
- #  "featuresBedroomNumber": featuresBedroomNumber,
- #  "featuresEnergyCertificateRating": property.get("energy_rating", {}).get("consumption", ""),
- #  "featuresEnergyCertificatePerformance": featuresEnergyCertificatePerformance,
- #  "featuresRooms": featuresRooms,
- # }
+     property_dict["propertyDescriptions"] = [
+      {
+       "descriptionLanguage": "spanish",
+       "descriptionText": property.get("desc", {}).get("es", "")
+      },
+      {
+       "descriptionLanguage": "english",
+       "descriptionText": property.get("desc", {}).get("en", "")
+      },
+     ]
+     property_dict["propertyImages"] = []
+     for image in property.get("images", {}).get("image", []):
+      try:
+       image_dict = {
+        "imageOrder": int(image.get("@id", "") or 0),
+        # "imageLabel": "property",
+        "imageUrl": image.get("url", "")
+       }
+       property_dict["propertyImages"].append(image_dict)
+      except AttributeError:
+       pass
 
- energy_rating = property.get("energy_rating", {}).get("consumption", "")
+     property_dict["propertyUrl"] = property.get("url", {}).get("es", "")
 
- if energy_rating != "X":
-  property_dict["propertyFeatures"] = {
-   "featuresType": type_value,
-   "featuresAreaConstructed": featuresAreaConstructed,
-   "featuresAreaUsable": featuresAreaUsable,
-   "featuresBathroomNumber": featuresBathroomNumber,
-   "featuresBedroomNumber": featuresBedroomNumber,
-   "featuresEnergyCertificateRating": energy_rating,
-   "featuresEnergyCertificatePerformance": featuresEnergyCertificatePerformance,
-   "featuresRooms": featuresRooms,
-  }
- else:
-  property_dict["propertyFeatures"] = {
-   "featuresType": type_value,
-   "featuresAreaConstructed": featuresAreaConstructed,
-   "featuresAreaUsable": featuresAreaUsable,
-   "featuresBathroomNumber": featuresBathroomNumber,
-   "featuresBedroomNumber": featuresBedroomNumber,
-   "featuresEnergyCertificatePerformance": featuresEnergyCertificatePerformance,
-   "featuresRooms": featuresRooms,
-  }
+     video_url = property.get("video_url", "")
+     if video_url:  # Si videoUrl no está vacío
+      property_dict["propertyVideos"] = [
+       {
+        "videoOrder": 1,
+        "videoUrl": video_url
+       }
+      ]
 
+     if 'propertyVideos' in property_dict:
+      property_dict["propertyVideos"] = [{k: v for k, v in video.items() if v} for video in
+                                         property_dict["propertyVideos"]]
 
+     # Si featuresAreaConstructed es 1, salta la adición de property_dict a json_dict["customerProperties"]
+     if property_dict["propertyFeatures"].get("featuresAreaConstructed") != 1:
+      json_dict["customerProperties"].append(property_dict)
 
- # Si la propiedad es de tipo "flat", establece "featuresBathroomNumber" y "featuresBedroomNumber" en 1 si sus valores son None, 0, o null
- if type_value == "flat":
-  property_dict["propertyFeatures"]["featuresBathroomNumber"] = int(property_dict["propertyFeatures"].get("featuresBathroomNumber", 1))
-  property_dict["propertyFeatures"]["featuresBedroomNumber"] = int(property_dict["propertyFeatures"].get("featuresBedroomNumber", 1))
+    return json_dict
 
+def upload_json_via_ftp(json_data, ftp_host, ftp_user, ftp_password, ftp_destination_folder, json_file_path):
+    with FTP(ftp_host) as ftp:
+        ftp.login(user=ftp_user, passwd=ftp_password)
+        ftp.cwd(ftp_destination_folder)
+        with open(json_file_path, 'rb') as file:
+            ftp.storbinary('STOR ' + json_file_path, file)
 
- # Si la propiedad es de tipo "flat", establece "featuresBathroomNumber" y "featuresBedroomNumber" en 1 si sus valores son None, 0, o null
- if type_value == "flat":
-  property_dict["propertyFeatures"]["featuresBathroomNumber"] = int(property_dict["propertyFeatures"].get("featuresBathroomNumber", 1)) or 1
-  property_dict["propertyFeatures"]["featuresBedroomNumber"] = int(property_dict["propertyFeatures"].get("featuresBedroomNumber", 1)) or 1
-  property_dict["propertyFeatures"]["featuresRooms"] = int(property_dict["propertyFeatures"].get("featuresRooms", 1)) or 1
-  property_dict["propertyFeatures"]["featuresAreaConstructed"] = int(property_dict["propertyFeatures"].get("featuresAreaConstructed")) if property_dict["propertyFeatures"].get("featuresAreaConstructed") is not None else 1
+# Configuración del enlace XML y el temporizador (40 minutos = 2400 segundos)
+xml_url = 'https://app.witei.com/pro/interconnection/xml/d1e8a7f70b7e4546/'
+download_interval = 2400
 
-
- # Si la propiedad no es de tipo "flat", elimina los campos featuresBathroomNumber, featuresBedroomNumber y featuresRooms
- if type_value != "flat":
-  property_dict["propertyFeatures"].pop("featuresBathroomNumber", None)
-  property_dict["propertyFeatures"].pop("featuresBedroomNumber", None)
-  property_dict["propertyFeatures"].pop("featuresRooms", None)
-
- # Elimina los campos con valor None en "propertyFeatures"
- property_dict["propertyFeatures"] = {k: v for k, v in property_dict["propertyFeatures"].items() if v is not None}
-
-
-
- property_dict["propertyDescriptions"] = [
- {
- "descriptionLanguage": "spanish",
- "descriptionText": property.get("desc", {}).get("es", "")
- },
- {
- "descriptionLanguage": "english",
- "descriptionText": property.get("desc", {}).get("en", "")
- },
- ]
- property_dict["propertyImages"] = []
- for image in property.get("images", {}).get("image", []):
+while True:
     try:
-        image_dict = {
-            "imageOrder": int(image.get("@id", "")or 0),
-            # "imageLabel": "property",
-            "imageUrl": image.get("url", "")
-        }
-        property_dict["propertyImages"].append(image_dict)
-    except AttributeError:
-        pass
+        # Descarga el archivo XML
+        xml_file_path = 'd1e8a7f70b7e4546.xml'
+        download_xml(xml_url, xml_file_path)
 
- property_dict["propertyUrl"] = property.get("url", {}).get("es", "")
+        # Transforma el XML a JSON
+        json_dict = transform_xml_to_json(xml_file_path)
 
- # property_dict["propertyVideos"] = [
- #  {
- #   "videoOrder": 1,
- #   "videoUrl": property.get("video_url", "")
- #  }
- # ]
+        # Configuración de FTP
+        ftp_host = 'ftp2.idealista.com'
+        ftp_user = 'hannanpiper'
+        ftp_password = 'ViamLapBa'
+        ftp_destination_folder = '/'
+        json_file_path = 'ilcc1ed9c9a4cff4a9ab424c5dd980602de9fac50c1.json'
 
- video_url = property.get("video_url", "")
- if video_url:  # Si videoUrl no está vacío
-  property_dict["propertyVideos"] = [
-   {
-    "videoOrder": 1,
-    "videoUrl": video_url
-   }
-  ]
+        # Convierte el diccionario a JSON usando json.dumps()
+        json_data = json.dumps(json_dict)
 
- if 'propertyVideos' in property_dict:
-       property_dict["propertyVideos"] = [{k: v for k, v in video.items() if v} for video in property_dict["propertyVideos"]]
+        # Escribe los datos JSON en un archivo de salida
+        with open(json_file_path, "w") as json_file:
+            json_file.write(json_data)
 
- # Crea un nuevo diccionario que solo incluya los campos que tienen un valor distinto de None o vacío
- # property_dict["propertyVideos"] = [{k: v for k, v in video.items() if v} for video in property_dict["propertyVideos"]]
+        # Guarda una copia del archivo JSON con un nombre diferente
+        # json_copy_path = 'copia_' + json_file_path
+        # with open(json_copy_path, "w") as json_copy_file:
+        #  json_copy_file.write(json_data)
 
- # Si featuresAreaConstructed es 1, salta la adición de property_dict a json_dict["customerProperties"]
- if property_dict["propertyFeatures"].get("featuresAreaConstructed") != 1:
-  json_dict["customerProperties"].append(property_dict)
+        # Sube el archivo JSON por FTP
+        upload_json_via_ftp(json_data, ftp_host, ftp_user, ftp_password, ftp_destination_folder, json_file_path)
 
- # Agrega el diccionario de propiedad a la lista de propiedades
- # json_dict["customerProperties"].append(property_dict)
+        print('Proceso completado con éxito.')
 
- # Convierte el diccionario a JSON usando json.dumps()
- json_data = json.dumps(json_dict)
+    except Exception as e:
+        print(f"Error en el proceso: {e}")
 
-
-
- # Escribe los datos JSON en un archivo de salida
- with open("ilcc1ed9c9a4cff4a9ab424c5dd980602de9fac50c1.json", "w") as json_file:
-  json_file.write(json_data)
-
+    # Espera antes de volver a descargar el archivo XML
+    time.sleep(download_interval)
