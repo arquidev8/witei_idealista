@@ -1779,7 +1779,7 @@ def transform_xml_to_json(xml_file_path):
 
      type_value = property.get("type", "").lower()
 
-     if type_value in ["piso", "casa", "apartamento", "vivienda", "penthouse", "duplex", "villa", "studio",
+     if type_value in ["piso", "casa", "apartamento", "vivienda", "penthouse", "duplex", "studio",
                        "building", "industrial", "apartment", "mansion"]:
          type_value = "flat"
      elif type_value == "parking":
@@ -1790,6 +1790,8 @@ def transform_xml_to_json(xml_file_path):
          type_value = "land"
      elif type_value == "shop":
          type_value = "premises"
+     elif type_value == "villa":
+         type_value = "house_villa"
 
      featuresAreaConstructed = int(property.get("surface_area", {}).get("built", 1)) if property.get(
          "surface_area", {}).get("built") else None
