@@ -1746,13 +1746,18 @@ def transform_xml_to_json(xml_file_path):
      operationPrice = int(property.get("price", "") or 0)
 
      property_dict["propertyOperation"] = {
-      "operationType": property.get("price_freq", ""),
-      "operationPrice": operationPrice,
+         "operationType": property.get("price_freq", ""),
+         "operationPrice": operationPrice,
      }
 
-     # Cambia "month" a "sale" en "operationType"
-     if property_dict["propertyOperation"]["operationType"] == "month":
-      property_dict["propertyOperation"]["operationType"] = "sale"
+     # Verifica si price_freq está vacío o no está presente
+     if not property_dict["propertyOperation"]["operationType"]:
+         # Si está vacío, asigna el valor predeterminado "rent"
+         property_dict["propertyOperation"]["operationType"] = "rent"
+     elif property_dict["propertyOperation"]["operationType"] == "month":
+         # Si es "month", cambia a "rent"
+         property_dict["propertyOperation"]["operationType"] = "rent"
+
 
      addressCoordinatesLatitude = float(property.get("location", {}).get("latitude", "") or 0)
      addressCoordinatesLongitude = float(property.get("location", {}).get("longitude", "") or 0)
