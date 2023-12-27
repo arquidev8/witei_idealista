@@ -1796,7 +1796,7 @@ def transform_xml_to_json(xml_file_path):
      elif type_value == "shop":
          type_value = "premises"
      elif type_value == "villa":
-         type_value = "house_villa"
+         type_value = "rustic_village"
 
      featuresAreaConstructed = int(property.get("surface_area", {}).get("built", 1)) if property.get(
          "surface_area", {}).get("built") else None
@@ -1993,7 +1993,7 @@ def upload_json_via_ftp(json_data, ftp_host, ftp_user, ftp_password, ftp_destina
 
 # Configuración del enlace XML y el temporizador (40 minutos = 2400 segundos)
 xml_url = 'https://app.witei.com/pro/interconnection/xml/d1e8a7f70b7e4546/'
-download_interval = 2400
+download_interval = 43200
 
 while True:
     try:
