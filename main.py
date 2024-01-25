@@ -702,6 +702,7 @@ def transform_xml_to_json(xml_file_path):
         {"propertyReference": "HP-9089", "propertyVisibility": "idealista", },
         {"propertyReference": "HPA-9095", "propertyVisibility": "idealista", },
         {"propertyReference": "HP-9100", "propertyVisibility": "idealista", },
+        {"propertyReference": "HP-9088", "propertyVisibility": "idealista", },
         # ... Añade más propiedades según sea necesario
     ]
 
